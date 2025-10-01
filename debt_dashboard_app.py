@@ -138,7 +138,7 @@ st.session_state.loans_df = loans_df
 # -------------------------
 # Main
 # -------------------------
-st.title("💶 Debt & Savings Dashboard for Herve")
+st.title("💶 Debt & Savings Dashboard ")
 st.caption("Start date: Oct 2025. Supports future job income changes.")
 
 # Run simulation
