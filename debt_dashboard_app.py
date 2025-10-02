@@ -7,8 +7,8 @@ st.set_page_config(page_title="Debt & Savings Dashboard", page_icon="💶", layo
 # -------------------------
 # Simulation Function
 # -------------------------
-def simulate(loans_df, base_income, expenses, savings_split=0.5, months=120, start_date="2025-10-01",
-             income_change_month=None, new_income=None):
+def simulate(loans_df, base_income, expenses, savings_split=0.5, months=120,
+             start_date="2025-10-01", income_change_month=None, new_income=None):
     loans = loans_df.to_dict(orient="records")
     savings = 0.0
     start_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -54,10 +54,10 @@ def simulate(loans_df, base_income, expenses, savings_split=0.5, months=120, sta
         results.append({
             "Month": month,
             "Date": month_date,
-            "Debt Start (€)": round(total_start,2),
-            "Debt End (€)": round(total_end,2),
-            "Savings (€)": round(savings,2),
-            "Net Position (€)": round(savings - total_end,2),
+            "Debt Start (€)": round(total_start, 2),
+            "Debt End (€)": round(total_end, 2),
+            "Savings (€)": round(savings, 2),
+            "Net Position (€)": round(savings - total_end, 2),
             "Income Used (€)": current_income
         })
 
@@ -83,11 +83,14 @@ st.sidebar.markdown("### 💼 Future Job Change")
 job_change = st.sidebar.checkbox("Simulate future income change?")
 income_change_month, new_income = None, None
 if job_change:
-    income_change_month = st.sidebar.number_input("Month of change (e.g. 12 = after 1 year)", min_value=1, value=12)
+    income_change_month = st.sidebar.number_input("Month of change (e.g. 12 = after 1 year)",
+                                                  min_value=1, value=12)
     new_income = st.sidebar.number_input("New Monthly Income (€)", min_value=0, value=2200, step=50)
 
 st.sidebar.markdown("---")
-strategy = st.sidebar.selectbox("Strategy", ["Safety First (all savings)", "Aggressive (all debt)", "Balanced 50/50", "Custom %"])
+strategy = st.sidebar.selectbox("Strategy", ["Safety First (all savings)",
+                                             "Aggressive (all debt)",
+                                             "Balanced 50/50", "Custom %"])
 custom_split = st.sidebar.slider("Custom: % to savings", 0.0, 1.0, 0.5, 0.05)
 
 if strategy == "Safety First (all savings)":
@@ -102,10 +105,10 @@ else:
 months = st.sidebar.slider("Months to simulate", 12, 180, 120, 6)
 
 # -------------------------
-# Loan Input (Mobile-Friendly)
+# Loan Input (Add & Delete, Mobile Friendly)
 # -------------------------
-st.title("💶 Debt & Savings Dashboard (v8 - Mobile Friendly)")
-st.caption("Start date: Oct 2025. Add your loans manually using the form below.")
+st.title("💶 Debt & Savings Dashboard (v9 - Add & Delete Loans)")
+st.caption("Start date: Oct 2025. Add or remove your loans below.")
 
 if "loans_df" not in st.session_state:
     st.session_state.loans_df = pd.DataFrame(columns=["Name", "Balance (€)", "APR %", "Min Payment (€)"])
@@ -122,20 +125,35 @@ with st.form("add_loan_form"):
     submitted = st.form_submit_button("Add Loan")
     if submitted and name and balance > 0 and minpay > 0:
         new_row = {"Name": name, "Balance (€)": balance, "APR %": apr, "Min Payment (€)": minpay}
-        st.session_state.loans_df = pd.concat([st.session_state.loans_df, pd.DataFrame([new_row])], ignore_index=True)
+        if st.session_state.loans_df.empty:
+            st.session_state.loans_df = pd.DataFrame([new_row])
+        else:
+            st.session_state.loans_df.loc[len(st.session_state.loans_df)] = new_row
         st.success(f"Loan '{name}' added!")
 
-# Display current loans
+# Display loans with delete option
 if not st.session_state.loans_df.empty:
     st.subheader("📋 Current Loans")
-    st.dataframe(st.session_state.loans_df, use_container_width=True)
+
+    for i, row in st.session_state.loans_df.iterrows():
+        cols = st.columns([3, 2, 2, 2, 1])
+        cols[0].write(row["Name"])
+        cols[1].write(f"€{row['Balance (€)']:.2f}")
+        cols[2].write(f"{row['APR %']:.1f}%")
+        cols[3].write(f"€{row['Min Payment (€)']:.2f}")
+
+        if cols[4].button("❌", key=f"del_{i}"):
+            st.session_state.loans_df = st.session_state.loans_df.drop(i).reset_index(drop=True)
+            st.rerun()
 
 # -------------------------
 # Run Simulation
 # -------------------------
 if not st.session_state.loans_df.empty:
-    df = simulate(st.session_state.loans_df, income, expenses, savings_split=savings_split, months=months,
-                  start_date="2025-10-01", income_change_month=income_change_month, new_income=new_income)
+    df = simulate(st.session_state.loans_df, income, expenses,
+                  savings_split=savings_split, months=months,
+                  start_date="2025-10-01",
+                  income_change_month=income_change_month, new_income=new_income)
 
     st.subheader("📅 Monthly Plan")
     st.dataframe(df, use_container_width=True, height=420)
@@ -148,7 +166,9 @@ if not st.session_state.loans_df.empty:
     chart_df = df.set_index("Date")[["Debt End (€)", "Savings (€)", "Net Position (€)"]]
     st.line_chart(chart_df, use_container_width=True)
 
-    st.download_button("⬇️ Download Full Schedule (CSV)", data=df.to_csv(index=False),
-                       file_name="debt_savings_plan.csv", mime="text/csv")
+    st.download_button("⬇️ Download Full Schedule (CSV)",
+                       data=df.to_csv(index=False),
+                       file_name="debt_savings_plan.csv",
+                       mime="text/csv")
 else:
     st.warning("Please add at least one loan to start the simulation.")
