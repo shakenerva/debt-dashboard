@@ -5,6 +5,25 @@ from datetime import datetime
 st.set_page_config(page_title="Debt & Savings Dashboard", page_icon="💶", layout="wide")
 
 # -------------------------
+# 🔒 Password Protection with Secrets
+# -------------------------
+PASSWORD = st.secrets["PASSWORD"]
+
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+
+if not st.session_state.auth:
+    st.title("🔐 Secure Access")
+    pwd = st.text_input("Enter password:", type="password")
+    if st.button("Login"):
+        if pwd == PASSWORD:
+            st.session_state.auth = True
+            st.success("Access granted ✅")
+        else:
+            st.error("Wrong password ❌")
+    st.stop()
+
+# -------------------------
 # Simulation Function
 # -------------------------
 def simulate(loans_df, base_income, expenses, savings_split=0.5, months=120,
@@ -107,7 +126,7 @@ months = st.sidebar.slider("Months to simulate", 12, 180, 120, 6)
 # -------------------------
 # Loan Input (Add & Delete, Mobile Friendly)
 # -------------------------
-st.title("💶 Debt & Savings Dashboard (v9 - Add & Delete Loans)")
+st.title("💶 Debt & Savings Dashboard (v10 - Secure)")
 st.caption("Start date: Oct 2025. Add or remove your loans below.")
 
 if "loans_df" not in st.session_state:
